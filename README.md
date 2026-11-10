@@ -1,49 +1,49 @@
 # Docs Outline Panel
 
-A Chrome extension that replaces the Google Docs outline sidebar with a
-resizable panel that shows full heading text.
+A Chrome extension that replaces the Google Docs outline with a resizable
+panel, so long headings show in full instead of being cut off with "…".
+
+**Before:** the built-in outline cuts long headings off.
+
+![Google Docs' built-in outline with long headings cut off](docs/before.jpg)
+
+**After:** the panel shows every heading in full.
+
+![The outline panel showing long headings in full](docs/after.jpg)
 
 ## Install
 
-1. Open `chrome://extensions` in Chrome.
-2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and choose this folder (`gdocs-toc`).
+1. Download or clone this repo.
+2. Open `chrome://extensions` and turn on **Developer mode** (top right).
+3. Click **Load unpacked** and select the `gdocs-toc` folder.
 4. Reload any open Google Docs tabs.
-
-After editing the code, click the reload icon on the extension's card in
-`chrome://extensions`, then reload the Docs tab.
 
 ## Use
 
-- **Resize**: drag the panel's right edge. Double-click the edge, or click ↔,
-  to fit the width to the longest heading.
-- **Wrap** (↵): switch between wrapped headings and one line per heading.
-- **A− / A+**: text size.
-- **1 / 2 / 3 / All**: how many heading levels to show.
-- **▼ / ▶**: collapse or expand one section.
-- **Filter headings**: show only headings containing the text you type.
-- **✕**: hide the panel and get the normal Docs sidebar back. Click the
-  **Outline** button at the bottom left to reopen it.
+| Control | Action |
+| --- | --- |
+| Drag the right edge | Resize. Double-click the edge, or click ↔, to fit the longest heading. |
+| ↵ | Wrap long headings, or keep each on one line |
+| A− / A+ | Text size |
+| 1 / 2 / 3 / All | Heading levels to show |
+| ▼ / ▶ | Collapse or expand a section |
+| Filter box | Show only headings containing the text |
+| ✕ | Hide the panel. Click **Outline** at the bottom left to bring it back. |
 
-Width, wrap, text size and level are remembered across all your docs.
+Your settings carry over to every doc. The panel can't grow wider than the
+gray area left of the page, so it never covers your text.
 
 ## How it works
 
-Docs draws the document on a canvas, so headings can't be read from the page.
-The native outline sidebar is ordinary HTML though, and holds every heading's
-full text. The extension keeps that sidebar in the page but invisible, mirrors
-its entries into its own panel, and replays your clicks on the native entries
-so Docs does the scrolling. It uses no Google API and no permissions.
+Docs draws the page on a canvas, but its built-in outline is ordinary HTML
+that holds each heading's full text. The extension hides that outline, shows
+its entries in its own panel, and passes your clicks back to it so Docs does
+the scrolling. It needs no permissions and makes no network requests.
 
-The panel never moves the Docs page. It sits in the gray area left of the
-page and can't be made wider than that area, so it never covers the page.
-On a narrower window or at a higher zoom the area shrinks and the panel
-shrinks with it (to no less than 180 px), growing back when there's room.
-Docs works out which character you clicked from where its own layout put the
-page, so moving the page with CSS (as version 0.1.0 did) makes clicks and
-selections land to the right of the pointer.
+## Development
 
-## If it breaks
+After changing the code, click the reload icon on the extension's card in
+`chrome://extensions`, then reload the Docs tab.
 
-Google can change Docs' HTML at any time. Everything that depends on it is in
-the `SEL` object at the top of `content.js` and in `page.css`.
+Google can change Docs' HTML at any time. If the panel stops working, check
+the `SEL` selectors at the top of `content.js` and the rules in `page.css`.
