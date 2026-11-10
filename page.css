@@ -1,0 +1,24 @@
+/* Moves the Docs page and ruler right when the outline panel is wider than
+   the native sidebar. --gdtoc-push is set by content.js. */
+html.gdtoc-push .kix-appview-editor {
+  margin-left: var(--gdtoc-push) !important;
+  width: calc(100% - var(--gdtoc-push)) !important;
+}
+
+html.gdtoc-push #kix-horizontal-ruler-container {
+  margin-left: var(--gdtoc-push) !important;
+}
+
+/* While the panel is open the native sidebar stays in the page (the panel
+   reads it and clicks it) but is invisible, so nothing peeks out from behind
+   a narrow panel. */
+html.gdtoc-open .left-sidebar-container {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+@media print {
+  #gdtoc-host {
+    display: none !important;
+  }
+}
