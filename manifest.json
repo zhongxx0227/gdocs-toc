@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Docs Outline Panel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A resizable outline for Google Docs that shows full heading text.",
   "content_scripts": [
     {

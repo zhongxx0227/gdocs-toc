@@ -12,7 +12,6 @@
   const SEL = {
     appView: '#kix-appview',
     sidebar: '.left-sidebar-container',
-    tileManager: '.kix-rotatingtilemanager',
     itemList: '.navigation-item-list',
     item: '.navigation-item[role="menuitem"]',
     itemText: '.navigation-item-content',
@@ -22,12 +21,11 @@
     tab: '.chapter-item-label-and-buttons-container[role="treeitem"]',
     tabSelectedClass: 'chapter-item-label-and-buttons-container-selected',
     tabOwner: '.chapter-item',
-    hideNative: '.navigation-widget-hat-close[role="button"]',
     showNative: '[class*="MiniChapterSwitcherSurfaceSwitcher"]',
   };
 
   const KEY = 'gdtoc:v1';
-  const DEFAULTS = { w: 280, wrap: true, open: true, maxLevel: 0, font: 14, push: 0 };
+  const DEFAULTS = { w: 280, wrap: true, open: true, maxLevel: 0, font: 14 };
   const MIN_W = 180;
   const PANEL_LEFT = 16; // same left offset as the native sidebar
   const FONT_STACK = '"Google Sans", Roboto, Arial, sans-serif';
@@ -38,7 +36,9 @@
 
   function loadSettings() {
     try {
-      return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}'));
+      const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      delete saved.push; // left over from the version that moved the page
+      return Object.assign({}, DEFAULTS, saved);
     } catch {
       return { ...DEFAULTS };
     }
@@ -49,32 +49,12 @@
     } catch {}
   }
 
-  // ---- page push -----------------------------------------------------------
-  // Applied at document_start from the saved value, so Docs lays the page out
-  // in the right place on first paint.
-  function applyPush(px) {
-    root.style.setProperty('--gdtoc-push', px + 'px');
-    root.classList.toggle('gdtoc-push', px > 0);
-  }
-  applyPush(S.open ? S.push : 0);
+  // The panel never moves the Docs page. Docs works out which character was
+  // clicked from where its own layout put the page, so moving the page with
+  // CSS makes every click and selection land to the right of the pointer.
+  // The panel floats over the gray area instead, and covers the page's left
+  // edge only when it's made wider than that area.
   root.classList.toggle('gdtoc-open', S.open);
-
-  function wantedPush() {
-    if (!S.open) return 0;
-    const tm = qs(SEL.tileManager);
-    const nativeEdge = tm ? parseFloat(tm.style.left) : NaN;
-    if (!Number.isFinite(nativeEdge)) return null; // Docs hasn't laid out yet
-    return Math.max(0, Math.round(PANEL_LEFT + S.w - nativeEdge));
-  }
-
-  function updatePush() {
-    const want = wantedPush();
-    if (want === null || want === S.push) return;
-    S.push = want;
-    saveSettings();
-    applyPush(want);
-    relayout();
-  }
 
   // Sends the mouse sequence Docs' own handlers listen for. A bare .click()
   // is ignored by Docs.
@@ -93,41 +73,18 @@
     }
   }
 
-  function waitFor(test, timeout) {
-    return new Promise((resolve) => {
-      const start = Date.now();
-      const tick = () => {
-        if (test() || Date.now() - start > timeout) resolve();
-        else setTimeout(tick, 50);
-      };
-      tick();
-    });
-  }
-
-  // Docs only re-centres the page during its own layout pass, and a style
-  // change doesn't start one. Toggling the native sidebar closed and open
-  // (or open and closed) does, and leaves it in the state it started in.
-  let relayoutBusy = false;
-  async function relayout() {
-    if (relayoutBusy) return;
-    relayoutBusy = true;
-    try {
-      const sidebar = qs(SEL.sidebar);
-      const tm = qs(SEL.tileManager);
-      if (!sidebar || !tm) return;
-      const expanded = sidebar.getBoundingClientRect().width > 150;
-      const first = qs(expanded ? SEL.hideNative : SEL.showNative);
-      if (!first) return;
-      const before = tm.style.left;
-      fire(first);
-      await waitFor(() => tm.style.left !== before, 1500);
-      const second = qs(expanded ? SEL.showNative : SEL.hideNative);
-      if (!second) return;
-      fire(second);
-      await waitFor(() => tm.style.left === before, 1500);
-    } finally {
-      relayoutBusy = false;
-    }
+  // While the panel is open, keep Docs' own sidebar expanded (it's invisible).
+  // Docs then leaves the gray space beside the page that the panel sits in;
+  // with its sidebar collapsed, Docs moves the page under the panel.
+  let lastExpandTry = 0;
+  function keepNativeExpanded() {
+    if (!S.open || Date.now() - lastExpandTry < 3000) return;
+    const sidebar = qs(SEL.sidebar);
+    if (!sidebar || sidebar.getBoundingClientRect().width > 150) return;
+    const show = qs(SEL.showNative);
+    if (!show) return;
+    lastExpandTry = Date.now();
+    fire(show);
   }
 
   // ---- reading the native outline -----------------------------------------
@@ -181,6 +138,7 @@
       background: #f8fafd; color: #444746;
       font: 14px/1.4 ${FONT_STACK};
       border-right: 1px solid #dde3ea;
+      box-shadow: 2px 0 6px rgba(60, 64, 67, .12);
     }
     .panel[hidden], .pill[hidden], .tabs[hidden] { display: none; }
     header { padding: 6px 6px 6px 12px; display: flex; flex-direction: column; gap: 6px; }
@@ -313,7 +271,6 @@
   let lastActive = -1;
   let query = '';
   const collapsed = new Set();
-  let pushReconciled = false;
 
   function mount() {
     host = document.createElement('div');
@@ -378,11 +335,7 @@
     const sidebar = qs(SEL.sidebar);
     if (sidebar) host.style.top = sidebar.offsetTop + 'px';
     clampWidth();
-
-    if (!pushReconciled && !relayoutBusy && wantedPush() !== null) {
-      pushReconciled = true;
-      updatePush();
-    }
+    keepNativeExpanded();
 
     const next = readModel();
     const sig = JSON.stringify([
@@ -421,7 +374,7 @@
     S.open = open;
     saveSettings();
     applySettings();
-    updatePush();
+    keepNativeExpanded();
   }
 
   function itemKey(item, index) {
@@ -582,10 +535,7 @@
   function setWidth(w, commit) {
     S.w = Math.round(Math.max(MIN_W, Math.min(maxWidth(), w)));
     host.style.width = S.w + 'px';
-    if (commit) {
-      saveSettings();
-      updatePush();
-    }
+    if (commit) saveSettings();
   }
 
   function setupResize() {
