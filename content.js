@@ -12,6 +12,7 @@
   const SEL = {
     appView: '#kix-appview',
     sidebar: '.left-sidebar-container',
+    page: '.kix-page-paginated',
     itemList: '.navigation-item-list',
     item: '.navigation-item[role="menuitem"]',
     itemText: '.navigation-item-content',
@@ -350,7 +351,7 @@
   }
 
   function applySettings() {
-    host.style.width = S.w + 'px';
+    clampWidth();
     root.classList.toggle('gdtoc-open', S.open);
     ui.panel.hidden = !S.open;
     ui.pill.hidden = S.open;
@@ -362,8 +363,18 @@
     }
   }
 
+  // The panel may fill the gray area left of the page but never cover the
+  // page. The page's position changes with window size and zoom, so this is
+  // re-measured on every sync. The saved width is kept as a preference: if
+  // the window gets wider again, the panel grows back to it.
+  const PAGE_GAP = 8;
   function maxWidth() {
-    return Math.max(MIN_W, Math.min(900, window.innerWidth - 240));
+    const page = qs(SEL.page);
+    const pageLeft = page ? page.getBoundingClientRect().left : NaN;
+    const roomLeftOfPage = Number.isFinite(pageLeft)
+      ? pageLeft - PANEL_LEFT - PAGE_GAP
+      : window.innerWidth - 240;
+    return Math.round(Math.max(MIN_W, Math.min(900, roomLeftOfPage)));
   }
   function clampWidth() {
     const w = Math.min(S.w, maxWidth());

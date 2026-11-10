@@ -35,8 +35,10 @@ full text. The extension keeps that sidebar in the page but invisible, mirrors
 its entries into its own panel, and replays your clicks on the native entries
 so Docs does the scrolling. It uses no Google API and no permissions.
 
-The panel never moves the Docs page. It sits over the gray area left of the
-page, and covers the page's left edge only if you drag it wider than that area.
+The panel never moves the Docs page. It sits in the gray area left of the
+page and can't be made wider than that area, so it never covers the page.
+On a narrower window or at a higher zoom the area shrinks and the panel
+shrinks with it (to no less than 180 px), growing back when there's room.
 Docs works out which character you clicked from where its own layout put the
 page, so moving the page with CSS (as version 0.1.0 did) makes clicks and
 selections land to the right of the pointer.
